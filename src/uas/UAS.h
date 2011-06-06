@@ -183,14 +183,19 @@ protected: //COMMENTS FOR TEST UNIT
     quint64 lastHeartbeat;      ///< Time of the last heartbeat message
     QTimer* statusTimeout;      ///< Timer for various status timeouts
 
-    int imageSize;              ///< Image size being transmitted (bytes)
-    int imagePackets;           ///< Number of data packets being sent for this image
-    int imagePacketsArrived;    ///< Number of data packets recieved
-    int imagePayload;           ///< Payload size per transmitted packet (bytes). Standard is 254, and decreases when image resolution increases.
-    int imageQuality;           ///< JPEG-Quality of the transmitted image (percentage)
-    QByteArray imageRecBuffer;  ///< Buffer for the incoming bytestream
-    QImage image;               ///< Image data of last completely transmitted image
-    quint64 imageStart;
+    struct imageConnData {
+        int type;              ///< Type of the transmitted image (BMP, PNG, JPEG, RAW 8 bit, RAW 32 bit)
+        int size;              ///< Image size being transmitted (bytes)
+        int packets;           ///< Number of data packets being sent for this image
+        int packetsArrived;    ///< Number of data packets recieved
+        int payload;           ///< Payload size per transmitted packet (bytes). Standard is 254, and decreases when image resolution increases.
+        int freq;
+        int quality;           ///< Quality of the transmitted image (percentage)
+        quint64 startTime;
+    };
+    imageConnData imageMetaData[];
+    QByteArray imageRecBuffer[];    ///< Buffers for the incoming bytestream
+    QImage image;                   ///< Image data of last completely transmitted image
 
     QMap<int, QMap<QString, float>* > parameters; ///< All parameters
     bool paramsOnceRequested;   ///< If the parameter list has been read at least once
@@ -391,7 +396,7 @@ signals:
     void heartbeat(UASInterface* uas);
     void imageStarted(quint64 timestamp);
     /** @brief A new camera image has arrived */
-    void imageReady(UASInterface* uas);
+    void imageReady(UASInterface* uas, int id);
 
 protected:
     /** @brief Get the UNIX timestamp in milliseconds */
