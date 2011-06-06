@@ -237,6 +237,7 @@ protected:
         MENU_MAVLINK_LOG_PLAYER,
         MENU_VIDEO_STREAM_1,
         MENU_VIDEO_STREAM_2,
+        MENU_MESH_STATUS,
         CENTRAL_SEPARATOR= 255, // do not change
         CENTRAL_LINECHART,
         CENTRAL_PROTOCOL,
@@ -397,6 +398,7 @@ protected:
     QPointer<QDockWidget> headUpDockWidget;
     QPointer<QDockWidget> video1DockWidget;
     QPointer<QDockWidget> video2DockWidget;
+    QPointer<QDockWidget> meshStatusDockWidget;
     QPointer<QDockWidget> logPlayerDockWidget;
 
     QPointer<QDockWidget> hsiDockWidget;

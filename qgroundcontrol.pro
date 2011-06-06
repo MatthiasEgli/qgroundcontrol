@@ -181,7 +181,8 @@ FORMS += src/ui/MainWindow.ui \
     src/ui/QGCSettingsWidget.ui \
     src/ui/UASControlParameters.ui \
     src/ui/mission/QGCMissionDoWidget.ui \
-    src/ui/mission/QGCMissionConditionWidget.ui
+    src/ui/mission/QGCMissionConditionWidget.ui \
+    src/ui/MeshStatus.ui
 
 INCLUDEPATH += src \
     src/ui \
@@ -296,7 +297,9 @@ HEADERS += src/MG.h \
     src/ui/uas/UASControlParameters.h \
     src/ui/mission/QGCMissionDoWidget.h \
     src/ui/mission/QGCMissionConditionWidget.h \
-    src/uas/QGCUASParamManager.h
+    src/uas/QGCUASParamManager.h \
+    src/ui/qttelnet.h \
+    src/ui/MeshStatus.h
 
 # Google Earth is only supported on Mac OS and Windows with Visual Studio Compiler
 macx|win32-msvc2008: {
@@ -426,7 +429,9 @@ SOURCES += src/main.cc \
     src/ui/uas/UASControlParameters.cpp \
     src/ui/mission/QGCMissionDoWidget.cc \
     src/ui/mission/QGCMissionConditionWidget.cc \
-    src/uas/QGCUASParamManager.cc
+    src/uas/QGCUASParamManager.cc \
+    src/ui/qttelnet.cpp \
+    src/ui/MeshStatus.cc
 
 macx|win32-msvc2008: {
     SOURCES += src/ui/map3D/QGCGoogleEarthView.cc

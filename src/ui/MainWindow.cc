@@ -29,6 +29,7 @@
 #include "QGCToolWidget.h"
 #include "QGCMAVLinkLogPlayer.h"
 #include "QGCSettingsWidget.h"
+#include "MeshStatus.h"
 
 #ifdef QGC_OSG_ENABLED
 #include "Q3DWidgetFactory.h"
@@ -517,6 +518,14 @@ void MainWindow::buildPxWidgets()
         video2DockWidget->setWidget(video2);
         video2DockWidget->setObjectName("VIDEO_STREAM_2_DOCK_WIDGET");
         addToToolsMenu (video2DockWidget, tr("Video Stream 2"), SLOT(showToolWidget(bool)), MENU_VIDEO_STREAM_2, Qt::LeftDockWidgetArea);
+    }
+
+    if (!meshStatusDockWidget)
+    {
+        meshStatusDockWidget = new QDockWidget(tr("Mesh Status"), this);
+        meshStatusDockWidget->setWidget(new MeshStatus(this));
+        meshStatusDockWidget->setObjectName("MESH_STATUS_DOCK_WIDGET");
+        addToToolsMenu (meshStatusDockWidget, tr("Mesh Status"), SLOT(showToolWidget(bool)), MENU_MESH_STATUS, Qt::LeftDockWidgetArea);
     }
 
     // Dialogue widgets
