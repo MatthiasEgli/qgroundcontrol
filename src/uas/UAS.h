@@ -230,8 +230,10 @@ public:
         paramManager = manager;
     }
     int getSystemType();
-    QImage getImage();
-    void requestImage();
+    QImage deliverImage(int streamId);
+    void requestImage(); // FIXME: remove
+
+
     int getAutopilotType() {
         return autopilot;
     }
@@ -381,6 +383,11 @@ public slots:
     void pauseDataRecording();
     void stopDataRecording();
 
+    /** @brief Start/stop an image stream */
+    void requestImageStream(int type = MAVLINK_DATA_STREAM_IMG_JPEG, int freq = 15, bool stop = false);
+    /** @brief Start/stop a video stream */
+    //void requestVideoStream(bool stop = false);
+
 signals:
 
     /** @brief The main/battery voltage has changed/was updated */
@@ -396,7 +403,7 @@ signals:
     void heartbeat(UASInterface* uas);
     void imageStarted(quint64 timestamp);
     /** @brief A new camera image has arrived */
-    void imageReady(UASInterface* uas, int id);
+    void imageRecieved(int streamId);
 
 protected:
     /** @brief Get the UNIX timestamp in milliseconds */

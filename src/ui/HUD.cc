@@ -138,8 +138,8 @@ HUD::HUD(int width, int height, QWidget* parent)
       hudInstrumentsEnabled(true),
       videoEnabled(false),
       xImageFactor(1.0),
-      yImageFactor(1.0)
-      imageRequested(false),
+      yImageFactor(1.0),
+      imageRequested(false)
 {
     // Set auto fill to false
     setAutoFillBackground(false);
@@ -165,10 +165,10 @@ HUD::HUD(int width, int height, QWidget* parent)
 
     // Refresh timer
     refreshTimer->setInterval(updateInterval);
-    imageTimer->setInterval(250);
+    imageTimer->setInterval(250); // FIXME remove? or at least use it with "freq"
     //connect(refreshTimer, SIGNAL(timeout()), this, SLOT(update()));
     connect(refreshTimer, SIGNAL(timeout()), this, SLOT(paintHUD()));
-    connect(imageTimer, SIGNAL(timeout()), this, SLOT(requestNewImage()));
+    connect(imageTimer, SIGNAL(timeout()), this, SLOT(deliverNextImage())); // FIXME remove?
 
     // Resize to correct size and fill with image
     //glDrawPixels(glImage.width(), glImage.height(), GL_RGBA, GL_UNSIGNED_BYTE, glImage.bits());
@@ -283,12 +283,14 @@ void HUD::setActiveUAS(UASInterface* uas)
         disconnect(this->uas, SIGNAL(globalPositionChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateGlobalPosition(UASInterface*,double,double,double,quint64)));
         disconnect(this->uas, SIGNAL(speedChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateSpeed(UASInterface*,double,double,double,quint64)));
         disconnect(this->uas, SIGNAL(waypointSelected(int,int)), this, SLOT(selectWaypoint(int, int)));
+        disconnect(this->uas, SIGNAL(imageRecieved(int)), this, SLOT(recievedImage(int)));
 
         // Try to disconnect the image link
         UAS* u = dynamic_cast<UAS*>(this->uas);
         if (u) {
             disconnect(u, SIGNAL(imageStarted(quint64)), this, SLOT(startImage(quint64)));
-            disconnect(u, SIGNAL(imageReady(UASInterface*)), this, SLOT(requestNewImage()));
+            //disconnect(u, SIGNAL(imageReady(UASInterface*)), this, SLOT(requestNewImage()));
+            emit imageStreamRequested(0, 0, true);
         }
     }
 
@@ -305,12 +307,14 @@ void HUD::setActiveUAS(UASInterface* uas)
         connect(uas, SIGNAL(globalPositionChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateGlobalPosition(UASInterface*,double,double,double,quint64)));
         connect(uas, SIGNAL(speedChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateSpeed(UASInterface*,double,double,double,quint64)));
         connect(uas, SIGNAL(waypointSelected(int,int)), this, SLOT(selectWaypoint(int, int)));
+        connect(uas, SIGNAL(imageRecieved(int)), this, SLOT(recievedImage(int)));
 
         // Try to connect the image link
         UAS* u = dynamic_cast<UAS*>(uas);
         if (u) {
             connect(u, SIGNAL(imageStarted(quint64)), this, SLOT(startImage(quint64)));
-            connect(u, SIGNAL(imageReady(UASInterface*)), this, SLOT(requestNewImage()));
+            //connect(u, SIGNAL(imageReady(UASInterface*)), this, SLOT(requestNewImage()));
+            emit imageStreamRequested();
         }
 
         // Set new UAS
@@ -422,6 +426,11 @@ void HUD::updateLoad(UASInterface* uas, double load)
     Q_UNUSED(uas);
     this->load = load;
     //updateValue(uas, "load", load, MG::TIME::getGroundTimeNow());
+}
+
+void HUD::recievedImage(int streamId)
+{
+    this->glImage = this->u->deliverImage(streamId);
 }
 
 /**
@@ -1633,6 +1642,7 @@ void HUD::setPixels(int imgid, const unsigned char* imageData, int length, int s
     }
 }
 
+/* TODO remove, obsolete
 void HUD::requestNewImage()
 {
     if (!imageRequested)
@@ -1642,7 +1652,7 @@ void HUD::requestNewImage()
     }
     else
     {
-        this->glImage = this->u->getImage();
+        this->glImage = this->u->deliverImage();
         imageRequested = false;
     }
-}
+}*/

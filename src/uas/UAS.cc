@@ -876,6 +876,7 @@ void UAS::receiveMessage(LinkInterface* link, mavlink_message_t message)
                 int id = p.id;
                 if (p.state)
                 {
+                    //imageMetaData[id] = new imageConnData;
                     imageMetaData[id].type = p.type;
                     imageMetaData[id].size = p.size;
                     imageMetaData[id].packets = p.packets;
@@ -891,16 +892,23 @@ void UAS::receiveMessage(LinkInterface* link, mavlink_message_t message)
                 mavlink_encapsulated_data_t img;
                 mavlink_msg_encapsulated_data_decode(&message, &img);
                 int id  = img.id;
+
+                // TODO FIXME how to check? necessary?
+                //if (imageMetaData[id] == NULL)
+                {
+                    // there was no handshake before or the transmission was already aborted; break
+                    //break;
+                }
+
+                if (imageRecBuffer[id].isNull())
+                {
+                    // TODO FIXME how to?
+                    // there is no buffer yet; create one
+                    //imageRecBuffer[id] = new QByteArray();
+                }
+
                 int seq = img.seqnr;
                 int pos = seq * imageMetaData[id].payload;
-
-                // Check if we have a valid transaction
-                if (imageMetaData[id]->packets == 0)
-                {
-                    // NO VALID TRANSACTION - ABORT
-                    // Restart statemachine
-                    imageMetaData[id].packetsArrived = 0;
-                }
 
                 for (int i = 0; i < imageMetaData[id].payload; ++i) {
                     if (pos <= imageMetaData[id].size) {
@@ -916,8 +924,8 @@ void UAS::receiveMessage(LinkInterface* link, mavlink_message_t message)
                 {
                     // Restart statemachine
                     imageMetaData[id].packetsArrived = 0;
-                    emit imageReady(this, id);
-                    qDebug() << "imageReady emitted. all packets arrived";
+                    emit imageRecieved(id);
+                    qDebug() << "imageRecieved emitted: all packets have successfully arrived";
                 }
             }
             break;
@@ -1336,72 +1344,87 @@ void UAS::getStatusForCode(int statusCode, QString& uasState, QString& stateDesc
     }
 }
 
-QImage UAS::getImage(int id)
+QImage UAS::deliverImage(int id)
 {
 #ifdef MAVLINK_ENABLED_PIXHAWK
 
-    qDebug() << "IMAGE TYPE:" << imageType;
+    //qDebug() << "IMAGE TYPE:" << imageType;
 
-    // RAW greyscale
-    if (imageMetaData[id].type == MAVLINK_DATA_STREAM_IMG_RAW8U)
+    /* TODO FIXME how to?
+    if (imageMetaData[id].isNull())
     {
-        // TODO FIXME Fabian
-        // RAW hardcoded to 22x22
-        int imgWidth = 22;
-        int imgHeight = 22;
-        int imgColors = 255;
-        //const int headerSize = 15;
+        qDebug() << "there is no such image stream for id " << id;
+        return QImage();
+    }*/
 
-        // Construct PGM header
-        QString header("P5\n%1 %2\n%3\n");
-        header = header.arg(imgWidth).arg(imgHeight).arg(imgColors);
-
-        QByteArray tmpImage(header.toStdString().c_str(), header.toStdString().size());
-        tmpImage.append(imageRecBuffer[id]);
-
-        //qDebug() << "IMAGE SIZE:" << tmpImage.size() << "HEADER SIZE: (15):" << header.size() << "HEADER: " << header;
-
-        if (imageRecBuffer[id].isNull())
-        {
-            qDebug()<< "could not convertToPGM()";
-            return QImage();
-        }
-
-        if (!image.loadFromData(tmpImage, "PGM"))
-        {
-            qDebug()<< "could not create extracted image";
-            return QImage();
-        }
-
-    }
-    // BMP with header
-    else if (imageType == MAVLINK_DATA_STREAM_IMG_BMP ||
-             imageType == MAVLINK_DATA_STREAM_IMG_JPEG ||
-             imageType == MAVLINK_DATA_STREAM_IMG_PGM ||
-             imageType == MAVLINK_DATA_STREAM_IMG_PNG)
+    switch (imageMetaData[id].type)
     {
-       if (!image.loadFromData(imageRecBuffer[id]))
+        case MAVLINK_DATA_STREAM_IMG_JPEG:
+        case MAVLINK_DATA_STREAM_IMG_BMP:
+        case MAVLINK_DATA_STREAM_IMG_PGM:
+        case MAVLINK_DATA_STREAM_IMG_PNG:
         {
-           qDebug() << "Loading data from image buffer failed!";
+            if (!image.loadFromData(imageRecBuffer[id]))
+            {
+                qDebug() << "Loading data from image buffer failed!";
+            }
+            break;
+        }
+        case MAVLINK_DATA_STREAM_IMG_RAW8U:
+        {
+            // TODO FIXME Fabian
+            // RAW hardcoded to 22x22
+            int imgWidth = 22;
+            int imgHeight = 22;
+            int imgColors = 255;
+            //const int headerSize = 15;
+
+            // Construct PGM header
+            QString header("P5\n%1 %2\n%3\n");
+            header = header.arg(imgWidth).arg(imgHeight).arg(imgColors);
+
+            QByteArray tmpImage(header.toStdString().c_str(), header.toStdString().size());
+            tmpImage.append(imageRecBuffer[id]);
+
+            //qDebug() << "IMAGE SIZE:" << tmpImage.size() << "HEADER SIZE: (15):" << header.size() << "HEADER: " << header;
+
+            if (imageRecBuffer[id].isNull())
+            {
+                qDebug()<< "could not convertToPGM()";
+                return QImage();
+            }
+
+            if (!image.loadFromData(tmpImage, "PGM"))
+            {
+                qDebug()<< "could not create extracted image";
+                return QImage();
+            }
+            break;
+        }
+        default:
+        {
+            break;
         }
     }
+
     // Restart statemachine
-    imagePacketsArrived = 0;
-    //imageRecBuffer.clear();
+    imageMetaData[id].packetsArrived = 0;
+    imageRecBuffer[id].clear();
     return image;
 #endif
-
 }
 
+/* TODO remove, obsolete
 void UAS::requestImage(int id)
 {
+
 #ifdef MAVLINK_ENABLED_PIXHAWK
     qDebug() << "trying to get an image from the uas...";
 
     if (!id)
     {
         // new image stream, increase ID:
-        id = sizeof(imageMetaData)/sizeof(imageConnData);
+        //id = sizeof(imageMetaData)/sizeof(imageConnData);
     }
 
     // check if there is already an image transmission going on
@@ -1410,6 +1433,63 @@ void UAS::requestImage(int id)
         mavlink_message_t msg;
         mavlink_msg_data_transmission_handshake_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, DATA_TYPE_JPEG_IMAGE, id, 0, 0, 0, 10, 50);
         sendMessage(msg);
+    }
+#endif
+}*/
+
+void UAS::requestImageStream(int type, int freq, bool stop)
+{
+#ifdef MAVLINK_ENABLED_PIXHAWK
+    // TODO: use real IDs instead of just the image type
+    int id = static_cast<uint8_t>(type);
+
+    if (!stop)// TODO FIXME how to??? && imageMetaData[id] == NULL)
+    {
+        qDebug() << "trying to start an image stream...";
+
+        // start image stream
+        mavlink_message_t msg;
+        mavlink_msg_data_transmission_handshake_pack(
+                    mavlink->getSystemId(),
+                    mavlink->getComponentId(),
+                    &msg,
+                    this->uasId,
+                    PX_IMAGE_STREAM_START,
+                    static_cast<uint8_t>(type),
+                    id,
+                    0,
+                    0,
+                    0,
+                    static_cast<uint8_t>(freq),
+                    50
+        );
+        sendMessage(msg);
+    }
+    else if (stop)
+    {
+        qDebug() << "trying to stop an image stream...";
+
+        // stop image stream
+        mavlink_message_t msg;
+        mavlink_msg_data_transmission_handshake_pack(
+                    mavlink->getSystemId(),
+                    mavlink->getComponentId(),
+                    &msg,
+                    this->uasId,
+                    PX_IMAGE_STREAM_STOP,
+                    static_cast<uint8_t>(type),
+                    id,
+                    0,
+                    0,
+                    0,
+                    static_cast<uint8_t>(freq),
+                    0
+        );
+        sendMessage(msg);
+
+        // delete metadata and image data for that stream
+        // TODO FIXME how to? imageMetaData[id] = NULL;
+        imageRecBuffer[id].clear();
     }
 #endif
 }

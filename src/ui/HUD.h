@@ -88,9 +88,12 @@ public slots:
     void enableHUDInstruments(bool enabled);
     /** @brief Enable Video */
     void enableVideo(bool enabled);
-    /** @brief Handler for image transmission */
-    void requestNewImage();
+    /** @brief Get the newest image */
+    void recievedImage(int streamId);
 
+signals:
+    void imageStreamRequested(int type = MAVLINK_DATA_STREAM_IMG_JPEG, int freq = 15, bool stop = false);
+    void videoStreamRequested(bool stop = false);
 
 protected slots:
     void paintCenterBackground(float roll, float pitch, float yaw);
