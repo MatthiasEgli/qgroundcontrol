@@ -165,10 +165,10 @@ HUD::HUD(int width, int height, QWidget* parent)
 
     // Refresh timer
     refreshTimer->setInterval(updateInterval);
-    imageTimer->setInterval(250); // FIXME remove? or at least use it with "freq"
+    //imageTimer->setInterval(250); // FIXME remove? or at least use it with "freq"
     //connect(refreshTimer, SIGNAL(timeout()), this, SLOT(update()));
     connect(refreshTimer, SIGNAL(timeout()), this, SLOT(paintHUD()));
-    connect(imageTimer, SIGNAL(timeout()), this, SLOT(deliverNextImage())); // FIXME remove?
+    //connect(imageTimer, SIGNAL(timeout()), this, SLOT(deliverNextImage())); // FIXME remove?
 
     // Resize to correct size and fill with image
     //glDrawPixels(glImage.width(), glImage.height(), GL_RGBA, GL_UNSIGNED_BYTE, glImage.bits());
@@ -237,10 +237,12 @@ void HUD::contextMenuEvent (QContextMenuEvent* event)
     // Update actions
     enableHUDAction->setChecked(hudInstrumentsEnabled);
     enableVideoAction->setChecked(videoEnabled);
+    enableImagestreamAction->setChecked(imagestreamEnabled);
 
     menu.addAction(enableHUDAction);
     //menu.addAction(selectHUDColorAction);
     menu.addAction(enableVideoAction);
+    menu.addAction(enableImagestreamAction);
     menu.addAction(selectOfflineDirectoryAction);
     //menu.addAction(selectVideoChannelAction);
     menu.exec(event->globalPos());
@@ -253,6 +255,12 @@ void HUD::createActions()
     enableHUDAction->setCheckable(true);
     enableHUDAction->setChecked(hudInstrumentsEnabled);
     connect(enableHUDAction, SIGNAL(triggered(bool)), this, SLOT(enableHUDInstruments(bool)));
+
+    enableImagestreamAction = new QAction(tr("Enable live Image Streaming"), this);
+    enableImagestreamAction->setStatusTip(tr("Start the live image stream"));
+    enableImagestreamAction->setCheckable(true);
+    enableImagestreamAction->setChecked(imagestreamEnabled);
+    connect(enableImagestreamAction, SIGNAL(triggered(bool)), this, SLOT(enableImagestream(bool)));
 
     enableVideoAction = new QAction(tr("Enable Video Live feed"), this);
     enableVideoAction->setStatusTip(tr("Show the video live feed"));
@@ -290,7 +298,6 @@ void HUD::setActiveUAS(UASInterface* uas)
         if (u) {
             disconnect(u, SIGNAL(imageStarted(quint64)), this, SLOT(startImage(quint64)));
             //disconnect(u, SIGNAL(imageReady(UASInterface*)), this, SLOT(requestNewImage()));
-            emit imageStreamRequested(0, 0, true);
         }
     }
 
@@ -314,7 +321,6 @@ void HUD::setActiveUAS(UASInterface* uas)
         if (u) {
             connect(u, SIGNAL(imageStarted(quint64)), this, SLOT(startImage(quint64)));
             //connect(u, SIGNAL(imageReady(UASInterface*)), this, SLOT(requestNewImage()));
-            emit imageStreamRequested();
         }
 
         // Set new UAS
@@ -1605,6 +1611,19 @@ void HUD::enableHUDInstruments(bool enabled)
 void HUD::enableVideo(bool enabled)
 {
     videoEnabled = enabled;
+}
+
+void HUD::enableImagestream(bool enabled)
+{
+    imagestreamEnabled = enabled;
+    if(enabled)
+    {
+        u->requestImageStream(MAVLINK_DATA_STREAM_IMG_JPEG, 5);
+    }
+    else
+    {
+        u->requestImageStream(MAVLINK_DATA_STREAM_IMG_JPEG, -1);
+    }
 }
 
 void HUD::setPixels(int imgid, const unsigned char* imageData, int length, int startIndex)

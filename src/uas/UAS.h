@@ -193,8 +193,18 @@ protected: //COMMENTS FOR TEST UNIT
         int quality;           ///< Quality of the transmitted image (percentage)
         quint64 startTime;
     };
-    imageConnData imageMetaData[];
-    QByteArray imageRecBuffer[];    ///< Buffers for the incoming bytestream
+    enum ImageConnectionData {
+        IMG_TYPE = 0,
+        IMG_FREQ = 1,
+        IMG_SIZE = 2,
+        IMG_PACKETS = 3,
+        IMG_PAYLOAD = 4,
+        IMG_QUALITY = 5,
+        IMG_PACKETS_ARRIVED = 6
+    };
+
+    QList<int> imageMetaData[MAVLINK_DATA_STREAM_IMG_PNG];
+    QByteArray imageRecBuffer[MAVLINK_DATA_STREAM_IMG_PNG];    ///< Buffers for the incoming bytestream
     QImage image;                   ///< Image data of last completely transmitted image
 
     QMap<int, QMap<QString, float>* > parameters; ///< All parameters
@@ -232,6 +242,10 @@ public:
     int getSystemType();
     QImage deliverImage(int streamId);
     void requestImage(); // FIXME: remove
+    /** @brief Start/stop an image stream */
+    void requestImageStream(int type = MAVLINK_DATA_STREAM_IMG_JPEG, int freq = 15);
+    /** @brief Start/stop a video stream */
+    //void requestVideoStream(bool stop = false);
 
 
     int getAutopilotType() {
@@ -383,10 +397,6 @@ public slots:
     void pauseDataRecording();
     void stopDataRecording();
 
-    /** @brief Start/stop an image stream */
-    void requestImageStream(int type = MAVLINK_DATA_STREAM_IMG_JPEG, int freq = 15, bool stop = false);
-    /** @brief Start/stop a video stream */
-    //void requestVideoStream(bool stop = false);
 
 signals:
 
