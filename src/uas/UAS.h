@@ -249,7 +249,7 @@ public:
     /** @brief Start/stop an image stream */
     void requestImageStream(int type = MAVLINK_DATA_STREAM_IMG_JPEG, int freq = 15);
     /** @brief Start/stop a video stream */
-    //void requestVideoStream(bool stop = false);
+    void requestVideoStream(bool stop = false);
 
 
     int getAutopilotType() {
@@ -418,6 +418,8 @@ signals:
     void imageStarted(quint64 timestamp);
     /** @brief A new camera image has arrived */
     void imageRecieved(int streamId);
+    /** @brief The video stream is ready */
+    void videostreamStarted(bool start = true);
 
 protected:
     /** @brief Get the UNIX timestamp in milliseconds */

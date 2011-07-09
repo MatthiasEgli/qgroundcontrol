@@ -679,7 +679,7 @@ void HUD::paintHUD()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Fill with black background
-        if (videoEnabled || imagestreamEnabled) {
+        if (imagestreamEnabled) {// || videoEnabled) {
             if (nextOfflineImage != "" && QFileInfo(nextOfflineImage).exists()) {
                 qDebug() << __FILE__ << __LINE__ << "template image:" << nextOfflineImage;
                 QImage fill = QImage(nextOfflineImage);
@@ -1608,12 +1608,22 @@ void HUD::enableHUDInstruments(bool enabled)
 void HUD::enableVideo(bool enabled)
 {
     videoEnabled = enabled;
+    if (enabled)
+    {
+        qDebug() << "starting video";
+        u->requestVideoStream();
+    }
+    else
+    {
+        qDebug() << "stopping video";
+        u->requestVideoStream(true);
+    }
 }
 
 void HUD::enableImagestream(bool enabled)
 {
     imagestreamEnabled = enabled;
-    if(enabled)
+    if (enabled)
     {
         u->requestImageStream(MAVLINK_DATA_STREAM_IMG_JPEG, 5);
     }

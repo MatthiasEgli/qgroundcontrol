@@ -963,6 +963,25 @@ void UAS::receiveMessage(LinkInterface* link, mavlink_message_t message)
                 }
             }
             break;
+
+        case MAVLINK_MSG_ID_VIDEO_STREAM: {
+                mavlink_video_stream_t vid;
+                mavlink_msg_video_stream_decode(&message, &vid);
+
+                if (vid.target == mavlink->getSystemId() && vid.start_stop)
+                {
+                    // got an ACK message, videostream is up and running
+                    qDebug() << "got ACK to start video";
+                    emit videostreamStarted(true);
+                }
+                else if (vid.target == mavlink->getSystemId() && !vid.start_stop)
+                {
+                    // got an ACK message, videostream is stopped
+                    qDebug() << "got ACK to stop video";
+                    emit videostreamStarted(false);
+                }
+            break;
+            }
 #endif
         case MAVLINK_MSG_ID_DEBUG_VECT: {
                 mavlink_debug_vect_t vect;
@@ -1478,6 +1497,24 @@ void UAS::requestImageStream(int type, int freq)
                 0,
                 0,
                 50
+    );
+    sendMessage(msg);
+#endif
+}
+
+void UAS::requestVideoStream(bool stop)
+{
+#ifdef MAVLINK_ENABLED_PIXHAWK
+    if (!stop) qDebug() << "trying to start video stream...";
+    if (stop)  qDebug() << "trying to stop video stream...";
+
+    mavlink_message_t msg;
+    mavlink_msg_video_stream_pack(
+                mavlink->getSystemId(),
+                mavlink->getComponentId(),
+                &msg,
+                this->uasId,
+                !stop
     );
     sendMessage(msg);
 #endif
