@@ -82,6 +82,11 @@ paramManager(NULL)
     connect(this, SIGNAL(systemSpecsChanged(int)), this, SLOT(writeSettings()));
     statusTimeout->start(500);
     readSettings();
+
+/*    for (int i = 0; i < MAVLINK_DATA_STREAM_TYPES_MAX; i++)
+    {
+        imageMetaData[i][IMG_ACTIVE_STREAMS] = 0;
+    }*/
 }
 
 UAS::~UAS()
@@ -872,39 +877,39 @@ void UAS::receiveMessage(LinkInterface* link, mavlink_message_t message)
         case MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE: {
                 mavlink_data_transmission_handshake_t p;
                 mavlink_msg_data_transmission_handshake_decode(&message, &p);
-                qDebug() << "2";
 
                 // only react to ACK messages targeted at the QGC
                 if (p.state && p.target == mavlink->getSystemId())
                 {
-                    qDebug() << "1";
                     int id = p.id;
+
                     if (p.freq >= 0)
                     {
-                        // TODO check if there is still an image in the pipeline
-                        //      -> if imageRecBuffer still exists, the image wasn't delivered
-                        //      -> better? if IMG_PACKETS_ARRIVED is 0, then image wasn't delivered
+                        //++imageMetaData[id][IMG_ACTIVE_STREAMS];
 
-                        qDebug() << "Recieved ACK for transmission handshake (id:" << id << ", freq:" << p.freq << ")";
+                        //qDebug() << "Recieved ACK for transmission handshake (id:" << id << "/ freq:" << p.freq << ")";
 
-                        imageMetaData[id][IMG_TYPE]            = (int)p.type;
-                        imageMetaData[id][IMG_FREQ]            = (int)p.freq;
-                        imageMetaData[id][IMG_SIZE]            = (int)p.size;
-                        imageMetaData[id][IMG_PACKETS]         = (int)p.packets;
-                        imageMetaData[id][IMG_PAYLOAD]         = (int)p.payload;
-                        imageMetaData[id][IMG_QUALITY]         = (int)p.jpg_quality;
-                        imageMetaData[id][IMG_PACKETS_ARRIVED] = 0;
+                        //if (imageMetaData[id][IMG_ACTIVE_STREAMS] <= 1)
+                        {
+                            imageMetaData[id][IMG_TYPE]            = (int)p.type;
+                            imageMetaData[id][IMG_FREQ]            = (int)p.freq;
+                            imageMetaData[id][IMG_SIZE]            = (int)p.size;
+                            imageMetaData[id][IMG_PACKETS]         = (int)p.packets;
+                            imageMetaData[id][IMG_PAYLOAD]         = (int)p.payload;
+                            imageMetaData[id][IMG_QUALITY]         = (int)p.jpg_quality;
+                            imageMetaData[id][IMG_PACKETS_ARRIVED] = 0;
+                            imageMetaData[id][IMG_DELIVERED]       = false;
+                            //imageMetaData[id][IMG_ACTIVE_STREAMS]  = 1;
 
-                        // resize image buffer
-                        imageRecBuffer[id].resize(p.size); //= new QByteArray(); //(int)p.size, '\0');
-                        qDebug() << "Buffer size reset: now " << imageRecBuffer[id].size();
+                            // resize image buffer
+                            imageRecBuffer[id].resize(p.size); //= new QByteArray(); //(int)p.size, '\0');
+                            //qDebug() << "Buffer size reset: now " << imageRecBuffer[id].size();
+                            qDebug() << "New image:" << p.size << "bytes";
+                        }
                     }
                     else
                     {
-                        // transmission was successfully stopped
-                        imageMetaData[id].clear();
-                        // delete old image buffer
-                        //delete imageRecBuffer[id];
+                        //imageMetaData[id][IMG_ACTIVE_STREAMS] = qMax(--imageMetaData[id][IMG_ACTIVE_STREAMS], 0);
                     }
                 }
             }
@@ -913,10 +918,19 @@ void UAS::receiveMessage(LinkInterface* link, mavlink_message_t message)
         case MAVLINK_MSG_ID_ENCAPSULATED_DATA: {
                 mavlink_encapsulated_data_t img;
                 mavlink_msg_encapsulated_data_decode(&message, &img);
-
                 int id  = img.id;
-                qDebug() << "Recieved image packet with id" << id;
 
+                // check if previous image was already delivered, else deliver first and move on
+                if (!imageMetaData[id][IMG_DELIVERED] && !UAS::loadImage(id))
+                {
+                    qDebug() << "error: previous image could not be delivered";
+                }
+
+                // check if stream was already stopped
+                if (imageMetaData[id][IMG_FREQ] < 0)
+                {
+                    break;
+                }
                 /*
                 // check if there was a valid handshake before
                 if (imageMetaData[id].isEmpty() || imageRecBuffer[id].size() == 0)
@@ -941,14 +955,11 @@ void UAS::receiveMessage(LinkInterface* link, mavlink_message_t message)
 
                 ++imageMetaData[id][IMG_PACKETS_ARRIVED];
 
-                // emit signal if all packets arrived
-                if ((imageMetaData[id][IMG_PACKETS_ARRIVED] >= imageMetaData[id][IMG_PACKETS]))
+                // load image from image buffer if all packets arrived
+                if ((imageMetaData[id][IMG_PACKETS_ARRIVED] >= imageMetaData[id][IMG_PACKETS]) && UAS::loadImage(id))
                 {
-                    // Restart statemachine
                     imageMetaData[id][IMG_PACKETS_ARRIVED] = 0;
-                    imageRecBuffer[id].resize(0);
-                    emit imageRecieved(id);
-                    qDebug() << "imageRecieved emitted: all packets have successfully arrived";
+                    //qDebug() << "all packets have successfully arrived";
                 }
             }
             break;
@@ -1367,19 +1378,8 @@ void UAS::getStatusForCode(int statusCode, QString& uasState, QString& stateDesc
     }
 }
 
-QImage UAS::deliverImage(int id)
+bool UAS::loadImage(int id)
 {
-#ifdef MAVLINK_ENABLED_PIXHAWK
-
-    //qDebug() << "IMAGE TYPE:" << imageType;
-
-    /* TODO FIXME how to?
-    if (imageMetaData[id].isNull())
-    {
-        qDebug() << "there is no such image stream for id " << id;
-        return QImage();
-    }*/
-
     switch (imageMetaData[id][IMG_TYPE])
     {
         case MAVLINK_DATA_STREAM_IMG_JPEG:
@@ -1388,10 +1388,12 @@ QImage UAS::deliverImage(int id)
         case MAVLINK_DATA_STREAM_IMG_PNG:
         {
             //qDebug() << "content of image buffer: " << imageRecBuffer[id]->size();
-            if (!image.loadFromData(imageRecBuffer[id]))
+            if (!image[id].loadFromData(imageRecBuffer[id], "JPG"))
             {
                 qDebug() << "Loading data from image buffer failed!";
+                return false;
             }
+            //qDebug() << "image successfully loaded!";
             break;
         }
         case MAVLINK_DATA_STREAM_IMG_RAW8U:
@@ -1408,20 +1410,19 @@ QImage UAS::deliverImage(int id)
             header = header.arg(imgWidth).arg(imgHeight).arg(imgColors);
 
             QByteArray tmpImage(header.toStdString().c_str(), header.toStdString().size());
-            //tmpImage.append(imageRecBuffer[id]);
+            tmpImage.append(imageRecBuffer[id]);
 
             //qDebug() << "IMAGE SIZE:" << tmpImage.size() << "HEADER SIZE: (15):" << header.size() << "HEADER: " << header;
 
             if (imageRecBuffer[id].isEmpty())
             {
                 qDebug()<< "could not convertToPGM()";
-                return QImage();
+                return false;
             }
-
-            if (!image.loadFromData(tmpImage, "PGM"))
+            if (!image[id].loadFromData(tmpImage, "PGM"))
             {
                 qDebug()<< "could not create extracted image";
-                return QImage();
+                return false;
             }
             break;
         }
@@ -1431,35 +1432,27 @@ QImage UAS::deliverImage(int id)
         }
     }
 
-    // Restart statemachine
-    imageMetaData[id][IMG_PACKETS_ARRIVED] = 0;
-    //imageRecBuffer[id].clear();
-    return image;
-#endif
+    emit imageRecieved(id);
+    //imageRecBuffer[id].resize(0);
+    return true;
 }
 
-/* TODO remove, obsolete
-void UAS::requestImage(int id)
+QImage UAS::deliverImage(int id)
 {
-
 #ifdef MAVLINK_ENABLED_PIXHAWK
-    qDebug() << "trying to get an image from the uas...";
 
-    if (!id)
+    //qDebug() << "delivering image from stream id" << id << "/" << (int)imageMetaData[id][IMG_TYPE];
+
+    if (image[id].isNull())
     {
-        // new image stream, increase ID:
-        //id = sizeof(imageMetaData)/sizeof(imageConnData);
+        qDebug() << "image delivery triggered to early - there is no such image yet! id: " << id;
+        return QImage();
     }
 
-    // check if there is already an image transmission going on
-    if (imageMetaData[id].packetsArrived == 0)
-    {
-        mavlink_message_t msg;
-        mavlink_msg_data_transmission_handshake_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, DATA_TYPE_JPEG_IMAGE, id, 0, 0, 0, 10, 50);
-        sendMessage(msg);
-    }
+    imageMetaData[id][IMG_DELIVERED] = true;
+    return image[id];
 #endif
-}*/
+}
 
 void UAS::requestImageStream(int type, int freq)
 {
@@ -1467,55 +1460,26 @@ void UAS::requestImageStream(int type, int freq)
     // TODO: use real IDs instead of just the image type
     int id = static_cast<uint8_t>(type);
 
-    //if (freq >= 0)// TODO FIXME how to??? && imageMetaData[id] == NULL)
-    {
-        if (freq >=0) qDebug() << "trying to start an image stream...";
-        if (freq < 0) qDebug() << "trying to stop an image stream...";
+    if (freq >=0) qDebug() << "trying to start an image stream..." << imageMetaData[id][IMG_ACTIVE_STREAMS];
+    if (freq < 0) qDebug() << "trying to stop an image stream..." << imageMetaData[id][IMG_ACTIVE_STREAMS];
 
-        // start image stream
-        mavlink_message_t msg;
-        mavlink_msg_data_transmission_handshake_pack(
-                    mavlink->getSystemId(),
-                    mavlink->getComponentId(),
-                    &msg,
-                    this->uasId,
-                    0,
-                    id,
-                    static_cast<uint8_t>(type),
-                    static_cast<uint8_t>(freq),
-                    0,
-                    0,
-                    0,
-                    50
-        );
-        sendMessage(msg);
-    }
-    /*else if (freq < 0)
-    {
-        qDebug() << "trying to stop an image stream...";
-
-        // stop image stream
-        mavlink_message_t msg;
-        mavlink_msg_data_transmission_handshake_pack(
-                    mavlink->getSystemId(),
-                    mavlink->getComponentId(),
-                    &msg,
-                    this->uasId,
-                    1,
-                    static_cast<uint8_t>(type),
-                    id,
-                    0,
-                    0,
-                    0,
-                    static_cast<uint8_t>(freq),
-                    0
-        );
-        sendMessage(msg);
-
-        // delete metadata and image data for that stream
-        // TODO FIXME how to? imageMetaData[id] = NULL;
-        imageRecBuffer[id].clear();
-    }*/
+    // start image stream
+    mavlink_message_t msg;
+    mavlink_msg_data_transmission_handshake_pack(
+                mavlink->getSystemId(),
+                mavlink->getComponentId(),
+                &msg,
+                this->uasId,
+                0,
+                id,
+                static_cast<uint8_t>(type),
+                static_cast<uint8_t>(freq),
+                0,
+                0,
+                0,
+                50
+    );
+    sendMessage(msg);
 #endif
 }
 

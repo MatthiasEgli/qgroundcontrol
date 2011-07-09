@@ -181,7 +181,6 @@ protected:
     int warningBlinkRate;      ///< Blink rate of warning messages, will be rounded to the refresh rate
 
     QTimer* refreshTimer;      ///< The main timer, controls the update rate
-    QTimer* imageTimer;        ///< The timer for the image update rate
     QPainter* hudPainter;
     QFont font;                ///< The HUD font, per default the free Bitstream Vera SANS, which is very close to actual HUD fonts
     QFontDatabase fontDatabase;///< Font database, only used to load the TrueType font file (the HUD font is directly loaded from file rather than from the system)
@@ -226,7 +225,6 @@ protected:
     QAction* selectOfflineDirectoryAction;
     QAction* selectVideoChannelAction;
     void paintEvent(QPaintEvent *event);
-    bool imageRequested;
     UAS* u;
 
 };

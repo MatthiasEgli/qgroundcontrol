@@ -183,6 +183,7 @@ protected: //COMMENTS FOR TEST UNIT
     quint64 lastHeartbeat;      ///< Time of the last heartbeat message
     QTimer* statusTimeout;      ///< Timer for various status timeouts
 
+    /* TODO remove
     struct imageConnData {
         int type;              ///< Type of the transmitted image (BMP, PNG, JPEG, RAW 8 bit, RAW 32 bit)
         int size;              ///< Image size being transmitted (bytes)
@@ -192,7 +193,8 @@ protected: //COMMENTS FOR TEST UNIT
         int freq;
         int quality;           ///< Quality of the transmitted image (percentage)
         quint64 startTime;
-    };
+    };*/
+
     enum ImageConnectionData {
         IMG_TYPE = 0,
         IMG_FREQ = 1,
@@ -200,12 +202,14 @@ protected: //COMMENTS FOR TEST UNIT
         IMG_PACKETS = 3,
         IMG_PAYLOAD = 4,
         IMG_QUALITY = 5,
-        IMG_PACKETS_ARRIVED = 6
+        IMG_PACKETS_ARRIVED = 6,
+        IMG_ACTIVE_STREAMS = 7,
+        IMG_DELIVERED = 8
     };
 
     QList<int> imageMetaData[MAVLINK_DATA_STREAM_IMG_PNG];
-    QByteArray imageRecBuffer[MAVLINK_DATA_STREAM_IMG_PNG];    ///< Buffers for the incoming bytestream
-    QImage image;                   ///< Image data of last completely transmitted image
+    QByteArray imageRecBuffer[MAVLINK_DATA_STREAM_IMG_PNG]; ///< Buffers for the incoming bytestream
+    QImage image[MAVLINK_DATA_STREAM_IMG_PNG];              ///< Image data of last completely transmitted image
 
     QMap<int, QMap<QString, float>* > parameters; ///< All parameters
     bool paramsOnceRequested;   ///< If the parameter list has been read at least once
@@ -418,6 +422,8 @@ signals:
 protected:
     /** @brief Get the UNIX timestamp in milliseconds */
     quint64 getUnixTime(quint64 time=0);
+    /** @brief Load image data from image buffer */
+    bool loadImage(int streamid);
 
 protected slots:
     /** @brief Write settings to disk */

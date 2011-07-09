@@ -106,7 +106,6 @@ HUD::HUD(int width, int height, QWidget* parent)
       fuelColor(criticalColor),
       warningBlinkRate(5),
       refreshTimer(new QTimer(this)),
-      imageTimer(new QTimer(this)),
       noCamera(true),
       hardwareAcceleration(true),
       strongStrokeWidth(1.5f),
@@ -136,10 +135,10 @@ HUD::HUD(int width, int height, QWidget* parent)
       offlineDirectory(""),
       nextOfflineImage(""),
       hudInstrumentsEnabled(true),
+      imagestreamEnabled(false),
       videoEnabled(false),
       xImageFactor(1.0),
-      yImageFactor(1.0),
-      imageRequested(false)
+      yImageFactor(1.0)
 {
     // Set auto fill to false
     setAutoFillBackground(false);
@@ -161,14 +160,12 @@ HUD::HUD(int width, int height, QWidget* parent)
     //qDebug() << __FILE__ << __LINE__ << "template image:" << imagePath;
     //fill = QImage(imagePath);
 
-    //glImage = QGLWidget::convertToGLFormat(fill);
+    glImage = QGLWidget::convertToGLFormat(fill);
 
     // Refresh timer
     refreshTimer->setInterval(updateInterval);
-    //imageTimer->setInterval(250); // FIXME remove? or at least use it with "freq"
     //connect(refreshTimer, SIGNAL(timeout()), this, SLOT(update()));
     connect(refreshTimer, SIGNAL(timeout()), this, SLOT(paintHUD()));
-    //connect(imageTimer, SIGNAL(timeout()), this, SLOT(deliverNextImage())); // FIXME remove?
 
     // Resize to correct size and fill with image
     //glDrawPixels(glImage.width(), glImage.height(), GL_RGBA, GL_UNSIGNED_BYTE, glImage.bits());
@@ -207,7 +204,6 @@ HUD::HUD(int width, int height, QWidget* parent)
 HUD::~HUD()
 {
     refreshTimer->stop();
-    imageTimer->stop();
 }
 
 QSize HUD::sizeHint() const
@@ -297,7 +293,6 @@ void HUD::setActiveUAS(UASInterface* uas)
         UAS* u = dynamic_cast<UAS*>(this->uas);
         if (u) {
             disconnect(u, SIGNAL(imageStarted(quint64)), this, SLOT(startImage(quint64)));
-            //disconnect(u, SIGNAL(imageReady(UASInterface*)), this, SLOT(requestNewImage()));
         }
     }
 
@@ -320,7 +315,6 @@ void HUD::setActiveUAS(UASInterface* uas)
         UAS* u = dynamic_cast<UAS*>(uas);
         if (u) {
             connect(u, SIGNAL(imageStarted(quint64)), this, SLOT(startImage(quint64)));
-            //connect(u, SIGNAL(imageReady(UASInterface*)), this, SLOT(requestNewImage()));
         }
 
         // Set new UAS
@@ -436,7 +430,7 @@ void HUD::updateLoad(UASInterface* uas, double load)
 
 void HUD::recievedImage(int streamId)
 {
-    this->glImage = this->u->deliverImage(streamId);
+    this->glImage = QGLWidget::convertToGLFormat(this->u->deliverImage(streamId));
 }
 
 /**
@@ -685,7 +679,7 @@ void HUD::paintHUD()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Fill with black background
-        if (videoEnabled) {
+        if (videoEnabled || imagestreamEnabled) {
             if (nextOfflineImage != "" && QFileInfo(nextOfflineImage).exists()) {
                 qDebug() << __FILE__ << __LINE__ << "template image:" << nextOfflineImage;
                 QImage fill = QImage(nextOfflineImage);
@@ -701,7 +695,10 @@ void HUD::paintHUD()
 
             glRasterPos2i(0, 0);
 
-            glPixelZoom(xImageFactor, yImageFactor);
+            xImageFactor = width() / (float)glImage.width();
+            yImageFactor = height() / (float)glImage.height();
+            float imageFactor = qMin(xImageFactor, yImageFactor);
+            glPixelZoom(imageFactor, imageFactor);
             // Resize to correct size and fill with image
             glDrawPixels(glImage.width(), glImage.height(), GL_RGBA, GL_UNSIGNED_BYTE, glImage.bits());
         } else {
@@ -1660,18 +1657,3 @@ void HUD::setPixels(int imgid, const unsigned char* imageData, int length, int s
         //        }
     }
 }
-
-/* TODO remove, obsolete
-void HUD::requestNewImage()
-{
-    if (!imageRequested)
-    {
-        this->u->requestImage();
-        imageRequested = true;
-    }
-    else
-    {
-        this->glImage = this->u->deliverImage();
-        imageRequested = false;
-    }
-}*/
