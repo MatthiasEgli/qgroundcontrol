@@ -36,8 +36,6 @@ This file is part of the QGROUNDCONTROL project
 #include <string>
 #include <iostream>
 
-
-
 MeshStatus::MeshStatus(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::MeshStatus)
@@ -74,6 +72,13 @@ void MeshStatus::autoUpdate(int state)
     }
 }
 
+QString MeshStatus::getNamefromIP(QHostAddress addr) {
+    //Stub Function with fixed lookup-table
+    if (addr == QHostAddress("129.132.201.24"))
+        return "TestMAV";
+    return NULL;
+}
+
 void MeshStatus::telnetMessage(const QString &msg)
 {
     QStringList connectionList = msg.split("\n");
@@ -104,17 +109,56 @@ void MeshStatus::telnetMessage(const QString &msg)
             QString source = rx.capturedTexts()[1];
             QString dest = rx.capturedTexts()[2];
             QString quality = rx.capturedTexts()[3];
-            ui->connectionStatusTableWidget->insertRow(ui->connectionStatusTableWidget->rowCount());
-            QTableWidgetItem *newItem1 = new QTableWidgetItem(source);
-            ui->connectionStatusTableWidget->setItem(ui->connectionStatusTableWidget->rowCount()-1, 0, newItem1);
-            QTableWidgetItem *newItem2 = new QTableWidgetItem(dest);
-            ui->connectionStatusTableWidget->setItem(ui->connectionStatusTableWidget->rowCount()-1, 2, newItem2);
-            QTableWidgetItem *newItem3 = new QTableWidgetItem(quality);
-            ui->connectionStatusTableWidget->setItem(ui->connectionStatusTableWidget->rowCount()-1, 1, newItem3);
+
+            //Find MAV Names (using fake function)
+            QString name = getNamefromIP(QHostAddress(source));
+            if (name != NULL) {
+                source = name;
+            }
+            name = getNamefromIP(QHostAddress(dest));
+            if (name != NULL) {
+                dest = name;
+            }
+
+            //Check if any IP is belonging to the GroundStation, Display "QGroundControl" in that case
+            QList<QHostAddress> hostAddresses = QNetworkInterface::allAddresses();
+            if (hostAddresses.contains(QHostAddress(source))) {
+                source = "QGroundControl";
+            }
+            if (hostAddresses.contains(QHostAddress(dest))) {
+                dest = "QGroundControl";
+            }
+
+
+
+
+            QList<QTableWidgetItem *> existingSource = ui->connectionStatusTableWidget->findItems(source,Qt::MatchExactly);
+            QList<QTableWidgetItem *> existingDest = ui->connectionStatusTableWidget->findItems(dest,Qt::MatchExactly);
+
+            int existingEntryRow = -1;
+            foreach (QTableWidgetItem * itemSrc,existingSource) {
+                if (itemSrc->column() == 0)
+                    foreach (QTableWidgetItem * itemDest,existingDest) {
+                        if (itemDest->column() == 2 && itemDest->row() == itemSrc->row())
+                            existingEntryRow = itemDest->row();
+                    }
+            }
+
+            if (existingEntryRow == -1) {
+                ui->connectionStatusTableWidget->insertRow(ui->connectionStatusTableWidget->rowCount());
+                QTableWidgetItem *newItem1 = new QTableWidgetItem(source);
+                ui->connectionStatusTableWidget->setItem(ui->connectionStatusTableWidget->rowCount()-1, 0, newItem1);
+                QTableWidgetItem *newItem2 = new QTableWidgetItem(dest);
+                ui->connectionStatusTableWidget->setItem(ui->connectionStatusTableWidget->rowCount()-1, 2, newItem2);
+                QTableWidgetItem *newItem3 = new QTableWidgetItem(quality);
+                ui->connectionStatusTableWidget->setItem(ui->connectionStatusTableWidget->rowCount()-1, 1, newItem3);
+            } else {
+                ui->connectionStatusTableWidget->item(existingEntryRow,1)->setText(quality);
+            }
         }
     }
 
-
+    ui->connectionStatusTableWidget->sortByColumn(0);
 
     //qDebug() << connectionList;
 }
