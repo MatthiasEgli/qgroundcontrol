@@ -149,7 +149,8 @@ bool MAVLinkXMLParser::generate()
                                 connect(&includeParser, SIGNAL(parseState(QString)), this, SIGNAL(parseState(QString)));
                                 // Generate and write
                                 recursion_level++;
-                                includeParser.generate();
+                                // Abort if inclusion fails
+                                if (!includeParser.generate()) return false;
                                 recursion_level--;
                                 mainHeader += "\n#include \"../" + pureIncludeFileName + "/" + pureIncludeFileName + ".h\"\n";
 
@@ -262,13 +263,30 @@ bool MAVLinkXMLParser::generate()
 
                                                 // Add comment of field if there is one
                                                 QString fieldComment;
-                                                if (e2.text().length() > 0) {
-                                                    fieldComment = " /* " + e2.text() + "*/";
+                                                if (e2.text().length() > 0)
+                                                {
+                                                    QString sep(" | ");
+                                                    QDomNode pp = e2.firstChild();
+                                                    while (!pp.isNull()) {
+                                                        QDomElement pp2 = pp.toElement();
+                                                        if (pp2.isText() || pp2.isCDATASection())
+                                                        {
+                                                            fieldComment +=  pp2.nodeValue() + sep;
+                                                        }
+                                                        else if (pp2.isElement())
+                                                        {
+                                                            fieldComment += pp2.text() + sep;
+                                                            pp = pp.nextSibling();
+                                                        }
+                                                    }
                                                     fieldComment = fieldComment.replace("\n", " ");
+                                                    fieldComment = " /* " + fieldComment.simplified() + " */";
                                                 }
                                                 currEnum += "\t" + fieldName.toUpper() + "=" + fieldValue + "," + fieldComment + "\n";
-                                            } else if(!e2.isNull() && e2.tagName() == "description") {
-                                                comment = e2.text().replace("\n", " ") + comment;
+                                            }
+                                            else if(!e2.isNull() && e2.tagName() == "description")
+                                            {
+                                                comment = " " + e2.text().replace("\n", " ") + comment;
                                             }
                                             f = f.nextSibling();
                                         }
