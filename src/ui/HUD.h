@@ -86,10 +86,17 @@ public slots:
     void selectOfflineDirectory();
     /** @brief Enable the HUD instruments */
     void enableHUDInstruments(bool enabled);
+    /** @brief Enable Image streaming */
+    void enableImagestream(bool enabled);
     /** @brief Enable Video */
     void enableVideo(bool enabled);
-
-
+    /** @brief Get the newest image */
+    void recievedImage(int streamId);
+/*
+signals:
+    void imageStreamRequested(int type = MAVLINK_DATA_STREAM_IMG_JPEG, int freq = 15);
+    void videoStreamRequested(bool stop = false);
+*/
 protected slots:
     void paintCenterBackground(float roll, float pitch, float yaw);
     void paintRollPitchStrips();
@@ -209,13 +216,16 @@ protected:
     QString nextOfflineImage;
     bool hudInstrumentsEnabled;
     bool videoEnabled;
+    bool imagestreamEnabled;
     float xImageFactor;
     float yImageFactor;
     QAction* enableHUDAction;
+    QAction* enableImagestreamAction;
     QAction* enableVideoAction;
     QAction* selectOfflineDirectoryAction;
     QAction* selectVideoChannelAction;
     void paintEvent(QPaintEvent *event);
+    UAS* u;
 
 };
 

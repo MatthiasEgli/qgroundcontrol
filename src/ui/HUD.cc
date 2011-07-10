@@ -75,6 +75,7 @@ inline bool isinf(T value)
  */
 HUD::HUD(int width, int height, QWidget* parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent),
+      u(NULL),
       uas(NULL),
       yawInt(0.0f),
       mode(tr("UNKNOWN MODE")),
@@ -134,6 +135,7 @@ HUD::HUD(int width, int height, QWidget* parent)
       offlineDirectory(""),
       nextOfflineImage(""),
       hudInstrumentsEnabled(true),
+      imagestreamEnabled(false),
       videoEnabled(false),
       xImageFactor(1.0),
       yImageFactor(1.0)
@@ -158,7 +160,7 @@ HUD::HUD(int width, int height, QWidget* parent)
     //qDebug() << __FILE__ << __LINE__ << "template image:" << imagePath;
     //fill = QImage(imagePath);
 
-    //glImage = QGLWidget::convertToGLFormat(fill);
+    glImage = QGLWidget::convertToGLFormat(fill);
 
     // Refresh timer
     refreshTimer->setInterval(updateInterval);
@@ -231,10 +233,12 @@ void HUD::contextMenuEvent (QContextMenuEvent* event)
     // Update actions
     enableHUDAction->setChecked(hudInstrumentsEnabled);
     enableVideoAction->setChecked(videoEnabled);
+    enableImagestreamAction->setChecked(imagestreamEnabled);
 
     menu.addAction(enableHUDAction);
     //menu.addAction(selectHUDColorAction);
     menu.addAction(enableVideoAction);
+    menu.addAction(enableImagestreamAction);
     menu.addAction(selectOfflineDirectoryAction);
     //menu.addAction(selectVideoChannelAction);
     menu.exec(event->globalPos());
@@ -247,6 +251,12 @@ void HUD::createActions()
     enableHUDAction->setCheckable(true);
     enableHUDAction->setChecked(hudInstrumentsEnabled);
     connect(enableHUDAction, SIGNAL(triggered(bool)), this, SLOT(enableHUDInstruments(bool)));
+
+    enableImagestreamAction = new QAction(tr("Enable live Image Streaming"), this);
+    enableImagestreamAction->setStatusTip(tr("Start the live image stream"));
+    enableImagestreamAction->setCheckable(true);
+    enableImagestreamAction->setChecked(imagestreamEnabled);
+    connect(enableImagestreamAction, SIGNAL(triggered(bool)), this, SLOT(enableImagestream(bool)));
 
     enableVideoAction = new QAction(tr("Enable Video Live feed"), this);
     enableVideoAction->setStatusTip(tr("Show the video live feed"));
@@ -277,6 +287,7 @@ void HUD::setActiveUAS(UASInterface* uas)
         disconnect(this->uas, SIGNAL(globalPositionChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateGlobalPosition(UASInterface*,double,double,double,quint64)));
         disconnect(this->uas, SIGNAL(speedChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateSpeed(UASInterface*,double,double,double,quint64)));
         disconnect(this->uas, SIGNAL(waypointSelected(int,int)), this, SLOT(selectWaypoint(int, int)));
+        disconnect(this->uas, SIGNAL(imageRecieved(int)), this, SLOT(recievedImage(int)));
 
         // Try to disconnect the image link
         UAS* u = dynamic_cast<UAS*>(this->uas);
@@ -298,6 +309,7 @@ void HUD::setActiveUAS(UASInterface* uas)
         connect(uas, SIGNAL(globalPositionChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateGlobalPosition(UASInterface*,double,double,double,quint64)));
         connect(uas, SIGNAL(speedChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateSpeed(UASInterface*,double,double,double,quint64)));
         connect(uas, SIGNAL(waypointSelected(int,int)), this, SLOT(selectWaypoint(int, int)));
+        connect(uas, SIGNAL(imageRecieved(int)), this, SLOT(recievedImage(int)));
 
         // Try to connect the image link
         UAS* u = dynamic_cast<UAS*>(uas);
@@ -307,6 +319,7 @@ void HUD::setActiveUAS(UASInterface* uas)
 
         // Set new UAS
         this->uas = uas;
+        this->u = dynamic_cast<UAS*>(this->uas);
     }
 }
 
@@ -413,6 +426,11 @@ void HUD::updateLoad(UASInterface* uas, double load)
     Q_UNUSED(uas);
     this->load = load;
     //updateValue(uas, "load", load, MG::TIME::getGroundTimeNow());
+}
+
+void HUD::recievedImage(int streamId)
+{
+    this->glImage = QGLWidget::convertToGLFormat(this->u->deliverImage(streamId));
 }
 
 /**
@@ -661,7 +679,7 @@ void HUD::paintHUD()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Fill with black background
-        if (videoEnabled) {
+        if (imagestreamEnabled) {// || videoEnabled) {
             if (nextOfflineImage != "" && QFileInfo(nextOfflineImage).exists()) {
                 qDebug() << __FILE__ << __LINE__ << "template image:" << nextOfflineImage;
                 QImage fill = QImage(nextOfflineImage);
@@ -677,7 +695,10 @@ void HUD::paintHUD()
 
             glRasterPos2i(0, 0);
 
-            glPixelZoom(xImageFactor, yImageFactor);
+            xImageFactor = width() / (float)glImage.width();
+            yImageFactor = height() / (float)glImage.height();
+            float imageFactor = qMin(xImageFactor, yImageFactor);
+            glPixelZoom(imageFactor, imageFactor);
             // Resize to correct size and fill with image
             glDrawPixels(glImage.width(), glImage.height(), GL_RGBA, GL_UNSIGNED_BYTE, glImage.bits());
         } else {
@@ -1587,6 +1608,29 @@ void HUD::enableHUDInstruments(bool enabled)
 void HUD::enableVideo(bool enabled)
 {
     videoEnabled = enabled;
+    if (enabled)
+    {
+        qDebug() << "starting video";
+        u->requestVideoStream();
+    }
+    else
+    {
+        qDebug() << "stopping video";
+        u->requestVideoStream(true);
+    }
+}
+
+void HUD::enableImagestream(bool enabled)
+{
+    imagestreamEnabled = enabled;
+    if (enabled)
+    {
+        u->requestImageStream(MAVLINK_DATA_STREAM_IMG_JPEG, 5);
+    }
+    else
+    {
+        u->requestImageStream(MAVLINK_DATA_STREAM_IMG_JPEG, -1);
+    }
 }
 
 void HUD::setPixels(int imgid, const unsigned char* imageData, int length, int startIndex)

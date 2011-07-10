@@ -183,14 +183,33 @@ protected: //COMMENTS FOR TEST UNIT
     quint64 lastHeartbeat;      ///< Time of the last heartbeat message
     QTimer* statusTimeout;      ///< Timer for various status timeouts
 
-    int imageSize;              ///< Image size being transmitted (bytes)
-    int imagePackets;           ///< Number of data packets being sent for this image
-    int imagePacketsArrived;    ///< Number of data packets recieved
-    int imagePayload;           ///< Payload size per transmitted packet (bytes). Standard is 254, and decreases when image resolution increases.
-    int imageQuality;           ///< JPEG-Quality of the transmitted image (percentage)
-    QByteArray imageRecBuffer;  ///< Buffer for the incoming bytestream
-    QImage image;               ///< Image data of last completely transmitted image
-    quint64 imageStart;
+    /* TODO remove
+    struct imageConnData {
+        int type;              ///< Type of the transmitted image (BMP, PNG, JPEG, RAW 8 bit, RAW 32 bit)
+        int size;              ///< Image size being transmitted (bytes)
+        int packets;           ///< Number of data packets being sent for this image
+        int packetsArrived;    ///< Number of data packets recieved
+        int payload;           ///< Payload size per transmitted packet (bytes). Standard is 254, and decreases when image resolution increases.
+        int freq;
+        int quality;           ///< Quality of the transmitted image (percentage)
+        quint64 startTime;
+    };*/
+
+    enum ImageConnectionData {
+        IMG_TYPE = 0,
+        IMG_FREQ = 1,
+        IMG_SIZE = 2,
+        IMG_PACKETS = 3,
+        IMG_PAYLOAD = 4,
+        IMG_QUALITY = 5,
+        IMG_PACKETS_ARRIVED = 6,
+        IMG_ACTIVE_STREAMS = 7,
+        IMG_DELIVERED = 8
+    };
+
+    QList<int> imageMetaData[MAVLINK_DATA_STREAM_IMG_PNG];
+    QByteArray imageRecBuffer[MAVLINK_DATA_STREAM_IMG_PNG]; ///< Buffers for the incoming bytestream
+    QImage image[MAVLINK_DATA_STREAM_IMG_PNG];              ///< Image data of last completely transmitted image
 
     QMap<int, QMap<QString, float>* > parameters; ///< All parameters
     bool paramsOnceRequested;   ///< If the parameter list has been read at least once
@@ -225,8 +244,14 @@ public:
         paramManager = manager;
     }
     int getSystemType();
-    QImage getImage();
-    void requestImage(); // ?
+    QImage deliverImage(int streamId);
+    void requestImage(); // FIXME: remove
+    /** @brief Start/stop an image stream */
+    void requestImageStream(int type = MAVLINK_DATA_STREAM_IMG_JPEG, int freq = 15);
+    /** @brief Start/stop a video stream */
+    void requestVideoStream(bool stop = false);
+
+
     int getAutopilotType() {
         return autopilot;
     }
@@ -376,6 +401,7 @@ public slots:
     void pauseDataRecording();
     void stopDataRecording();
 
+
 signals:
 
     /** @brief The main/battery voltage has changed/was updated */
@@ -391,11 +417,15 @@ signals:
     void heartbeat(UASInterface* uas);
     void imageStarted(quint64 timestamp);
     /** @brief A new camera image has arrived */
-    void imageReady(UASInterface* uas);
+    void imageRecieved(int streamId);
+    /** @brief The video stream is ready */
+    void videostreamStarted(bool start = true);
 
 protected:
     /** @brief Get the UNIX timestamp in milliseconds */
     quint64 getUnixTime(quint64 time=0);
+    /** @brief Load image data from image buffer */
+    bool loadImage(int streamid);
 
 protected slots:
     /** @brief Write settings to disk */
