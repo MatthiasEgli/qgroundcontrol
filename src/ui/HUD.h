@@ -90,6 +90,8 @@ public slots:
     void enableImagestream(bool enabled);
     /** @brief Enable Video */
     void enableVideo(bool enabled);
+    /** @brief display videostream */
+    void displayVideo(bool stop);
     /** @brief Get the newest image */
     void recievedImage(int streamId);
 /*

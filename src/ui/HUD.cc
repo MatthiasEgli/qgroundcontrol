@@ -34,6 +34,8 @@ This file is part of the QGROUNDCONTROL project
 #include <QMenu>
 #include <QDesktopServices>
 #include <QFileDialog>
+#include <QDesktopServices>
+#include <QUrl>
 
 #include <QDebug>
 #include <cmath>
@@ -288,6 +290,7 @@ void HUD::setActiveUAS(UASInterface* uas)
         disconnect(this->uas, SIGNAL(speedChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateSpeed(UASInterface*,double,double,double,quint64)));
         disconnect(this->uas, SIGNAL(waypointSelected(int,int)), this, SLOT(selectWaypoint(int, int)));
         disconnect(this->uas, SIGNAL(imageRecieved(int)), this, SLOT(recievedImage(int)));
+        disconnect(this->uas, SIGNAL(videostreamStarted(bool)), this, SLOT(displayVideo(bool)));
 
         // Try to disconnect the image link
         UAS* u = dynamic_cast<UAS*>(this->uas);
@@ -310,6 +313,7 @@ void HUD::setActiveUAS(UASInterface* uas)
         connect(uas, SIGNAL(speedChanged(UASInterface*,double,double,double,quint64)), this, SLOT(updateSpeed(UASInterface*,double,double,double,quint64)));
         connect(uas, SIGNAL(waypointSelected(int,int)), this, SLOT(selectWaypoint(int, int)));
         connect(uas, SIGNAL(imageRecieved(int)), this, SLOT(recievedImage(int)));
+        connect(uas, SIGNAL(videostreamStarted(bool)), this, SLOT(displayVideo(bool)));
 
         // Try to connect the image link
         UAS* u = dynamic_cast<UAS*>(uas);
@@ -1617,6 +1621,18 @@ void HUD::enableVideo(bool enabled)
     {
         qDebug() << "stopping video";
         u->requestVideoStream(true);
+    }
+}
+
+void HUD::displayVideo(bool start)
+{
+    qDebug() << "displayVideo: video is running";
+    if (start)
+    {
+        qDebug() << "displayVideo: launching video";
+        QUrl feed;
+        feed.setUrl("http://localhost:8090/live.mpg");
+        QDesktopServices::openUrl(feed);
     }
 }
 

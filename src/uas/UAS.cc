@@ -973,6 +973,7 @@ void UAS::receiveMessage(LinkInterface* link, mavlink_message_t message)
                     // got an ACK message, videostream is up and running
                     qDebug() << "got ACK to start video";
                     emit videostreamStarted(true);
+                    qDebug() << "emitted videostreamStarted(true)";
                 }
                 else if (vid.target == mavlink->getSystemId() && !vid.start_stop)
                 {
