@@ -245,7 +245,7 @@ public:
     }
     int getSystemType();
     QImage deliverImage(int streamId);
-    void requestImage(); // FIXME: remove
+    //void requestImage(); // FIXME: remove
     /** @brief Start/stop an image stream */
     void requestImageStream(int type = MAVLINK_DATA_STREAM_IMG_JPEG, int freq = 15);
     /** @brief Start/stop a video stream */
