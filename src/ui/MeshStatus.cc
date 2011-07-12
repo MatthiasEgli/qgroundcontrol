@@ -76,6 +76,8 @@ QString MeshStatus::getNamefromIP(QHostAddress addr) {
     //Stub Function with fixed lookup-table
     if (addr == QHostAddress("129.132.201.24"))
         return "TestMAV";
+    if (addr == QHostAddress("192.168.0.5"))
+        return "MAV 01";
     return NULL;
 }
 

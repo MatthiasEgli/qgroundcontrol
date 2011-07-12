@@ -34,8 +34,9 @@ This file is part of the QGROUNDCONTROL project
 #include <QMenu>
 #include <QDesktopServices>
 #include <QFileDialog>
-#include <QDesktopServices>
-#include <QUrl>
+//#include <QDesktopServices>
+//#include <QUrl>
+#include <QProcess>
 
 #include <QDebug>
 #include <cmath>
@@ -1616,6 +1617,11 @@ void HUD::enableVideo(bool enabled)
     {
         qDebug() << "starting video";
         u->requestVideoStream();
+        QString program   = "vlc";
+        QStringList arguments;
+        arguments << "udp://@:1337/live.mpg";
+        QProcess *vlc = new QProcess();
+        vlc->startDetached(program, arguments);
     }
     else
     {
@@ -1629,10 +1635,11 @@ void HUD::displayVideo(bool start)
     qDebug() << "displayVideo: video is running";
     if (start)
     {
-        qDebug() << "displayVideo: launching video";
-        QUrl feed;
-        feed.setUrl("http://localhost:8090/live.mpg");
-        QDesktopServices::openUrl(feed);
+
+        //qDebug() << "displayVideo: launching video";
+        //QUrl feed;
+        //feed.setUrl("http://localhost:8090/live.mpg");
+        //QDesktopServices::openUrl(feed);
     }
 }
 
@@ -1641,7 +1648,7 @@ void HUD::enableImagestream(bool enabled)
     imagestreamEnabled = enabled;
     if (enabled)
     {
-        u->requestImageStream(MAVLINK_DATA_STREAM_IMG_JPEG, 5);
+        u->requestImageStream(MAVLINK_DATA_STREAM_IMG_JPEG, 1);
     }
     else
     {
