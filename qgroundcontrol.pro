@@ -215,7 +215,8 @@ FORMS += src/ui/MainWindow.ui \
     src/ui/mission/QGCMissionConditionWidget.ui \
     src/ui/MeshStatus.ui \
     src/ui/map/QGCMapTool.ui \
-    src/ui/map/QGCMapToolBar.ui
+    src/ui/map/QGCMapToolBar.ui \
+    src/ui/map/QGCMapToolbar.ui
 INCLUDEPATH += src \
     src/ui \
     src/ui/linechart \
