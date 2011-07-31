@@ -40,7 +40,9 @@
 #include "uavitem.h"
 #include "gpsitem.h"
 #include "homeitem.h"
+#include "waypointlineitem.h"
 #include "mapripper.h"
+#include "uavtrailtype.h"
 namespace mapcontrol
 {
     class UAVItem;
@@ -223,7 +225,6 @@ namespace mapcontrol
         double ZoomReal(){return map->Zoom();}
         double ZoomDigi(){return map->ZoomDigi();}
         double ZoomTotal(){return map->ZoomTotal();}
-        void SetZoom(double const& value){map->SetZoom(value);}
 
         qreal Rotate(){return map->rotation;}
         void SetRotate(qreal const& value);
@@ -390,8 +391,9 @@ namespace mapcontrol
         bool showuav;
         bool showhome;
         QTimer * diagTimer;
-        QGraphicsTextItem * diagGraphItem;
         bool showDiag;
+        QGraphicsTextItem * diagGraphItem;
+
     private slots:
         void diagRefresh();
         //   WayPointItem* item;//apagar
@@ -405,6 +407,10 @@ namespace mapcontrol
         //    private slots:
     signals:
         void zoomChanged(double zoomt,double zoom, double zoomd);
+        /**
+        * @brief Notify connected widgets about new map zoom
+        */
+        void zoomChanged(int newZoom);
         /**
         * @brief fires when one of the WayPoints numbers changes (not fired if due to a auto-renumbering)
         *
@@ -502,6 +508,23 @@ namespace mapcontrol
         * @brief Ripps the current selection to the DB
         */
         void RipMap();
+
+        /**
+        * @brief Sets the map zoom level
+        */
+        void SetZoom(double const& value){map->SetZoom(value);}
+        /**
+        * @brief Sets the map zoom level
+        */
+        void SetZoom(int const& value){map->SetZoom(value);}
+
+        /**
+        * @brief Notify external widgets about map zoom change
+        */
+        void emitMapZoomChanged()
+        {
+            emit zoomChanged(ZoomReal());
+        }
 
     };
 }

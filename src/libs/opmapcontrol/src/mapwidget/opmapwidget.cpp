@@ -47,6 +47,7 @@ namespace mapcontrol
         connect(map->core,SIGNAL(OnMapDrag()),this,SIGNAL(OnMapDrag()));
         connect(map->core,SIGNAL(OnMapTypeChanged(MapType::Types)),this,SIGNAL(OnMapTypeChanged(MapType::Types)));
         connect(map->core,SIGNAL(OnMapZoomChanged()),this,SIGNAL(OnMapZoomChanged()));
+        connect(map->core,SIGNAL(OnMapZoomChanged()),this,SLOT(emitMapZoomChanged()));
         connect(map->core,SIGNAL(OnTileLoadComplete()),this,SIGNAL(OnTileLoadComplete()));
         connect(map->core,SIGNAL(OnTileLoadStart()),this,SIGNAL(OnTileLoadStart()));
         connect(map->core,SIGNAL(OnTilesStillToLoad(int)),this,SIGNAL(OnTilesStillToLoad(int)));
@@ -94,8 +95,7 @@ namespace mapcontrol
         UAVItem* newUAV = new UAVItem(map,this);
         newUAV->setParentItem(map);
         UAVS.insert(id, newUAV);
-        QGraphicsItemGroup* waypointLine = new QGraphicsItemGroup();
-        waypointLine->setParentItem(map);
+        QGraphicsItemGroup* waypointLine = new QGraphicsItemGroup(map);
         waypointLines.insert(id, waypointLine);
         return newUAV;
     }
@@ -103,8 +103,7 @@ namespace mapcontrol
     void OPMapWidget::AddUAV(int id, UAVItem* uav)
     {
         uav->setParentItem(map);
-        QGraphicsItemGroup* waypointLine = new QGraphicsItemGroup();
-        waypointLine->setParentItem(map);
+        QGraphicsItemGroup* waypointLine = new QGraphicsItemGroup(map);
         waypointLines.insert(id, waypointLine);
         UAVS.insert(id, uav);
     }

@@ -28,7 +28,7 @@
 #include "uavitem.h"
 namespace mapcontrol
 {
-    UAVItem::UAVItem(MapGraphicItem* map,OPMapWidget* parent,QString uavPic):map(map),mapwidget(parent),showtrail(true),showtrailline(true),trailtime(5),traildistance(50),autosetreached(true)
+    UAVItem::UAVItem(MapGraphicItem* map,OPMapWidget* parent,QString uavPic):map(map),mapwidget(parent),showtrail(true),showtrailline(true),trailtime(5),traildistance(20),autosetreached(true)
     ,autosetdistance(100)
     {
         //QDir dir(":/uavs/images/");
@@ -211,7 +211,7 @@ namespace mapcontrol
     double UAVItem::Distance3D(const internals::PointLatLng &coord, const int &altitude)
     {
        return sqrt(pow(internals::PureProjection::DistanceBetweenLatLng(this->coord,coord)*1000,2)+
-       pow(this->altitude-altitude,2));
+       pow(static_cast<float>(this->altitude-altitude),2));
     }
     void UAVItem::SetUavPic(QString UAVPic)
     {

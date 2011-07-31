@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QTimer>
 #include "qttelnet.h"
+#include <QNetworkInterface>
+
 
 namespace Ui {
     class MeshStatus;
@@ -21,6 +23,7 @@ private:
     Ui::MeshStatus *ui;
     QtTelnet *telnetConnection;
     QTimer *autoUpdateTimer;
+    QString getNamefromIP(QHostAddress);
 
 public slots:
     void update();

@@ -10,53 +10,55 @@ INCLUDEPATH += . \
 # HACK! BIG TIME!
 DEFINES += EXTERNAL_USE
 
+DEFINES += QTCREATOR_UTILS_LIB
+
+#    submiteditorwidget.h \
+#    qtcolorbutton.h \
+
 # Input
-HEADERS += abstractprocess.h \
-           basevalidatinglineedit.h \
-           checkablemessagebox.h \
-           classnamevalidatinglineedit.h \
-           codegeneration.h \
-           consoleprocess.h \
-           coordinateconversions.h \
-           detailsbutton.h \
-           detailswidget.h \
-           fancylineedit.h \
-           fancymainwindow.h \
-           filenamevalidatinglineedit.h \
-           filesearch.h \
-           filewizarddialog.h \
-           filewizardpage.h \
-           homelocationutil.h \
-           iwelcomepage.h \
-           linecolumnlabel.h \
-           listutils.h \
-           newclasswidget.h \
-           parameteraction.h \
-           pathchooser.h \
-           pathlisteditor.h \
-           pathutils.h \
-           projectintropage.h \
-           projectnamevalidatinglineedit.h \
-           qtcassert.h \
-           qtcolorbutton.h \
-           reloadpromptutils.h \
-           savedaction.h \
-           settingsutils.h \
-           styledbar.h \
-           stylehelper.h \
-           submiteditorwidget.h \
-           submitfieldwidget.h \
-           synchronousprocess.h \
-           treewidgetcolumnstretcher.h \
-           uncommentselection.h \
-           utils_global.h \
-           welcomemodetreewidget.h \
-           worldmagmodel.h \
+HEADERS += utils_global.h \
+    reloadpromptutils.h \
+    settingsutils.h \
+    filesearch.h \
+    listutils.h \
+    pathchooser.h \
+    pathlisteditor.h \
+    filewizardpage.h \
+    filewizarddialog.h \
+    projectintropage.h \
+    basevalidatinglineedit.h \
+    filenamevalidatinglineedit.h \
+    projectnamevalidatinglineedit.h \
+    codegeneration.h \
+    newclasswidget.h \
+    classnamevalidatinglineedit.h \
+    linecolumnlabel.h \
+    fancylineedit.h \
+    savedaction.h \
+    abstractprocess.h \
+    consoleprocess.h \
+    synchronousprocess.h \
+    submitfieldwidget.h \
+    uncommentselection.h \
+    parameteraction.h \
+    treewidgetcolumnstretcher.h \
+    checkablemessagebox.h \
+    qtcassert.h \
+    styledbar.h \
+    stylehelper.h \
+    welcomemodetreewidget.h \
+    iwelcomepage.h \
+    fancymainwindow.h \
+    detailsbutton.h \
+    detailswidget.h \
+    coordinateconversions.h \
+    pathutils.h \
+        worldmagmodel.h \
+        homelocationutil.h \
            xmlconfig.h
 
 win32 {
-HEADERS += winutils.h \
-           qwineventnotifier_p.h
+HEADERS += winutils.h
 }
 
 FORMS += checkablemessagebox.ui \
@@ -71,43 +73,51 @@ SOURCES += abstractprocess_win.cpp \
            winutils.cpp
 }
 
-SOURCES += basevalidatinglineedit.cpp \
-           checkablemessagebox.cpp \
-           classnamevalidatinglineedit.cpp \
-           codegeneration.cpp \
-           consoleprocess.cpp \
-           consoleprocess_unix.cpp \
-           coordinateconversions.cpp \
-           detailsbutton.cpp \
-           detailswidget.cpp \
-           fancylineedit.cpp \
-           fancymainwindow.cpp \
-           filenamevalidatinglineedit.cpp \
-           filesearch.cpp \
-           filewizarddialog.cpp \
-           filewizardpage.cpp \
-           homelocationutil.cpp \
-           iwelcomepage.cpp \
-           linecolumnlabel.cpp \
-           newclasswidget.cpp \
-           parameteraction.cpp \
-           pathchooser.cpp \
-           pathlisteditor.cpp \
-           pathutils.cpp \
-           projectintropage.cpp \
-           projectnamevalidatinglineedit.cpp \
-           qtcolorbutton.cpp \
-           reloadpromptutils.cpp \
-           savedaction.cpp \
-           settingsutils.cpp \
-           styledbar.cpp \
-           stylehelper.cpp \
-           submiteditorwidget.cpp \
-           submitfieldwidget.cpp \
-           synchronousprocess.cpp \
-           treewidgetcolumnstretcher.cpp \
-           uncommentselection.cpp \
-           welcomemodetreewidget.cpp \
-           worldmagmodel.cpp \
+macx {
+SOURCES += consoleprocess_unix.cpp
+}
+
+linux-g++ {
+SOURCES += consoleprocess_unix.cpp
+}
+
+#    submiteditorwidget.cpp \
+#    qtcolorbutton.cpp \
+
+SOURCES += reloadpromptutils.cpp \
+    settingsutils.cpp \
+    filesearch.cpp \
+    pathchooser.cpp \
+    pathlisteditor.cpp \
+    filewizardpage.cpp \
+    filewizarddialog.cpp \
+    projectintropage.cpp \
+    basevalidatinglineedit.cpp \
+    filenamevalidatinglineedit.cpp \
+    projectnamevalidatinglineedit.cpp \
+    codegeneration.cpp \
+    newclasswidget.cpp \
+    classnamevalidatinglineedit.cpp \
+    linecolumnlabel.cpp \
+    fancylineedit.cpp \
+    savedaction.cpp \
+    synchronousprocess.cpp \
+    submitfieldwidget.cpp \
+    consoleprocess.cpp \
+    uncommentselection.cpp \
+    parameteraction.cpp \
+    treewidgetcolumnstretcher.cpp \
+    checkablemessagebox.cpp \
+    styledbar.cpp \
+    stylehelper.cpp \
+    welcomemodetreewidget.cpp \
+    iwelcomepage.cpp \
+    fancymainwindow.cpp \
+    detailsbutton.cpp \
+    detailswidget.cpp \
+    coordinateconversions.cpp \
+    pathutils.cpp \
+        worldmagmodel.cpp \
+        homelocationutil.cpp \
            xmlconfig.cpp
 RESOURCES += utils.qrc

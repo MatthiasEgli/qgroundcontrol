@@ -116,6 +116,9 @@ namespace mapcontrol
         */
         internals::RectLatLng SelectedArea()const{return selectedArea;}
 
+    public slots:
+        void SetSelectedArea(internals::RectLatLng const& value){selectedArea = value;this->update();}
+
     protected:
         void mouseMoveEvent ( QGraphicsSceneMouseEvent * event );
         void mousePressEvent ( QGraphicsSceneMouseEvent * event );
@@ -166,6 +169,7 @@ namespace mapcontrol
         internals::PointLatLng selectionStart;
         internals::PointLatLng selectionEnd;
         double zoomReal;
+        qreal rotation;
         double zoomDigi;
         QRectF maprect;
         bool isSelected;
@@ -173,7 +177,7 @@ namespace mapcontrol
         QPixmap dragons;
         void SetIsMouseOverMarker(bool const& value){isMouseOverMarker = value;}
 
-        qreal rotation;
+
         /**
         * @brief Creates a rectangle that represents the "view" of the cuurent map, to compensate
         *       rotation
@@ -196,7 +200,6 @@ namespace mapcontrol
         */
         int MinZoom()const{return minZoom;}
         internals::MouseWheelZoomType::Types GetMouseWheelZoomType(){return core->GetMouseWheelZoomType();}
-        void SetSelectedArea(internals::RectLatLng const& value){selectedArea = value;this->update();}
         internals::RectLatLng BoundsOfMap;
         void Offset(int const& x, int const& y);
         bool CanDragMap()const{return core->CanDragMap;}
@@ -226,6 +229,11 @@ namespace mapcontrol
         * @param zoom
         */
         void zoomChanged(double zoomtotal,double zoomreal,double zoomdigi);
+
+        /**
+        * @brief Fired when map changes in any visible way
+        */
+        void mapChanged();
     };
 }
 #endif // MAPGRAPHICITEM_H
