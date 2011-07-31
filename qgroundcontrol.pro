@@ -213,10 +213,9 @@ FORMS += src/ui/MainWindow.ui \
     src/ui/UASControlParameters.ui \
     src/ui/mission/QGCMissionDoWidget.ui \
     src/ui/mission/QGCMissionConditionWidget.ui \
-    src/ui/MeshStatus.ui
+    src/ui/MeshStatus.ui \
     src/ui/map/QGCMapTool.ui \
     src/ui/map/QGCMapToolBar.ui
-
 INCLUDEPATH += src \
     src/ui \
     src/ui/linechart \
@@ -328,7 +327,7 @@ HEADERS += src/MG.h \
     src/ui/mission/QGCMissionConditionWidget.h \
     src/uas/QGCUASParamManager.h \
     src/ui/qttelnet.h \
-    src/ui/MeshStatus.h
+    src/ui/MeshStatus.h \
     src/ui/map/QGCMapWidget.h \
     src/ui/map/MAV2DIcon.h \
     src/ui/map/Waypoint2DIcon.h \
@@ -459,7 +458,7 @@ SOURCES += src/main.cc \
     src/ui/mission/QGCMissionConditionWidget.cc \
     src/uas/QGCUASParamManager.cc \
     src/ui/qttelnet.cpp \
-    src/ui/MeshStatus.cc
+    src/ui/MeshStatus.cc \
     src/ui/map/QGCMapWidget.cc \
     src/ui/map/MAV2DIcon.cc \
     src/ui/map/Waypoint2DIcon.cc \
@@ -467,7 +466,6 @@ SOURCES += src/main.cc \
     src/ui/map/QGCMapTool.cc \
     src/ui/map/QGCMapToolBar.cc
 macx|win32-msvc2008::SOURCES += src/ui/map3D/QGCGoogleEarthView.cc
-
 contains(DEPENDENCIES_PRESENT, osg) { 
     message("Including sources for OpenSceneGraph")
     

@@ -40,7 +40,6 @@
 #include "uavitem.h"
 #include "gpsitem.h"
 #include "homeitem.h"
-#include "waypointlineitem.h"
 #include "mapripper.h"
 namespace mapcontrol
 {

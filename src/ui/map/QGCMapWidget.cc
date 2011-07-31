@@ -156,8 +156,6 @@ void QGCMapWidget::storeSettings()
 void QGCMapWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
     OPMapWidget::mouseDoubleClickEvent(event);
-    // FIXME HACK!
-    currEditMode = EDIT_MODE_WAYPOINTS;
     if (currEditMode == EDIT_MODE_WAYPOINTS)
     {
         // If a waypoint manager is available
@@ -166,13 +164,8 @@ void QGCMapWidget::mouseDoubleClickEvent(QMouseEvent* event)
             // Create new waypoint
             internals::PointLatLng pos = this->currentMousePosition();
             Waypoint* wp = currWPManager->createWaypoint();
-//            wp->blockSignals(true);
-            wp->setFrame(MAV_FRAME_GLOBAL_RELATIVE_ALT);
             wp->setLatitude(pos.Lat());
             wp->setLongitude(pos.Lng());
-            wp->setAltitude(0);
-//            wp->blockSignals(false);
-//            currWPManager->notifyOfChange(wp);
         }
     }
 }
@@ -206,6 +199,13 @@ void QGCMapWidget::activeUASSet(UASInterface* uas)
 
     if (uas) {
         currWPManager = uas->getWaypointManager();
+//        QColor color = mav->getColor();
+//        color.setAlphaF(0.9);
+//        QPen* pen = new QPen(color);
+//        pen->setWidth(3.0);
+//        mavPens.insert(mav->getUASID(), pen);
+//        // FIXME Remove after refactoring
+//        waypointPath->setPen(pen);
 
         // Delete all waypoints and add waypoint from new system
         updateWaypointList(uas->getUASID());
@@ -378,16 +378,19 @@ void QGCMapWidget::cacheVisibleRegion()
         msgBox.setDefaultButton(QMessageBox::Ok);
         msgBox.exec();
     }
-    else
-    {
-        RipMap();
-        // Set empty area = unselect area
-        map->SetSelectedArea(internals::RectLatLng());
-    }
+
+    RipMap();
+
+    // FIXME UNSELECT AREA NOW
 }
 
 
 // WAYPOINT MAP INTERACTION FUNCTIONS
+
+//void QGCMapWidget::createWaypointAtMousePos(QMouseEvent)
+//{
+
+//}
 
 void QGCMapWidget::handleMapWaypointEdit(mapcontrol::WayPointItem* waypoint)
 {
@@ -433,8 +436,7 @@ void QGCMapWidget::updateWaypoint(int uas, Waypoint* wp)
     if (firingWaypointChange == wp) return;
     // Currently only accept waypoint updates from the UAS in focus
     // this has to be changed to accept read-only updates from other systems as well.
-    UASInterface* uasInstance = UASManager::instance()->getUASForId(uas);
-    if (uasInstance->getWaypointManager() == currWPManager || uas == -1) {
+    if (UASManager::instance()->getUASForId(uas)->getWaypointManager() == currWPManager) {
         // Only accept waypoints in global coordinate frame
         if (((wp->getFrame() == MAV_FRAME_GLOBAL) || (wp->getFrame() == MAV_FRAME_GLOBAL_RELATIVE_ALT)) && wp->isNavigationType()) {
             // We're good, this is a global waypoint
@@ -442,7 +444,8 @@ void QGCMapWidget::updateWaypoint(int uas, Waypoint* wp)
             // Get the index of this waypoint
             // note the call to getGlobalFrameAndNavTypeIndexOf()
             // as we're only handling global waypoints
-            int wpindex = currWPManager->getGlobalFrameAndNavTypeIndexOf(wp);
+            int wpindex = UASManager::instance()->getUASForId(uas)->getWaypointManager()->getGlobalFrameAndNavTypeIndexOf(wp);
+            UASInterface* uasInstance = UASManager::instance()->getUASForId(uas);
             // If not found, return (this should never happen, but helps safety)
             if (wpindex == -1) return;
             // Mark this wp as currently edited
@@ -451,34 +454,23 @@ void QGCMapWidget::updateWaypoint(int uas, Waypoint* wp)
             // Check if wp exists yet in map
             if (!waypointsToIcons.contains(wp)) {
                 // Create icon for new WP
-                QColor wpColor(Qt::red);
-                if (uasInstance) wpColor = uasInstance->getColor();
-                Waypoint2DIcon* icon = new Waypoint2DIcon(map, this, wp, wpColor, wpindex);
+                Waypoint2DIcon* icon = new Waypoint2DIcon(map, this, wp, uasInstance->getColor(), wpindex);
                 ConnectWP(icon);
                 icon->setParentItem(map);
                 // Update maps to allow inverse data association
                 waypointsToIcons.insert(wp, icon);
                 iconsToWaypoints.insert(icon, wp);
 
-                // Add line element if this is NOT the first waypoint
-                if (wpindex > 0)
-                {
-                    // Get predecessor of this WP
-                    QVector<Waypoint* > wps = currWPManager->getGlobalFrameAndNavTypeWaypointList();
-                    Waypoint* wp1 = wps.at(wpindex-1);
-                    mapcontrol::WayPointItem* prevIcon = waypointsToIcons.value(wp1, NULL);
-                    // If we got a valid graphics item, continue
-                    if (prevIcon)
-                    {
-                        mapcontrol::WaypointLineItem* line = new mapcontrol::WaypointLineItem(prevIcon, icon, wpColor, map);
-                        QGraphicsItemGroup* group = waypointLines.value(uas, NULL);
-                        if (group)
-                        {
-                            group->addToGroup(line);
-                        }
-                        line->setVisible(true);
-                    }
-                }
+                // Add line element
+                qDebug() << "ADDING LINE";
+                mapcontrol::TrailLineItem* line = new mapcontrol::TrailLineItem(internals::PointLatLng(0.2, 0.2), icon->Coord(), QBrush(Qt::red), map);
+               QGraphicsItemGroup* group = waypointLines.value(uas, NULL);
+               if (group)
+               {
+                   group->addToGroup(line);
+                   qDebug() << "ADDED LINE!";
+               }
+                line->setVisible(true);
             } else {
                 // Waypoint exists, block it's signals and update it
                 mapcontrol::WayPointItem* icon = waypointsToIcons.value(wp);
@@ -515,7 +507,7 @@ void QGCMapWidget::updateWaypoint(int uas, Waypoint* wp)
             // waypoint list. This implies that the coordinate frame of this
             // waypoint was changed and the list containing only global
             // waypoints was shortened. Thus update the whole list
-            if (waypointsToIcons.size() > currWPManager->getGlobalFrameAndNavTypeCount()) {
+            if (waypointsToIcons.size() > UASManager::instance()->getUASForId(uas)->getWaypointManager()->getGlobalFrameAndNavTypeCount()) {
                 updateWaypointList(uas);
             }
         }
@@ -531,8 +523,14 @@ void QGCMapWidget::updateWaypointList(int uas)
 {
     // Currently only accept waypoint updates from the UAS in focus
     // this has to be changed to accept read-only updates from other systems as well.
-    UASInterface* uasInstance = UASManager::instance()->getUASForId(uas);
-    if ((uasInstance && (uasInstance->getWaypointManager() == currWPManager)) || uas == -1) {
+    if (UASManager::instance()->getUASForId(uas)->getWaypointManager() == currWPManager) {
+        qDebug() << "UPDATING WP LIST";
+        // Get current WP list
+        // compare to local WP maps and
+        // update / remove all WPs
+
+        //    int localCount = waypointsToIcons.count();
+
         // ORDER MATTERS HERE!
         // TWO LOOPS ARE NEEDED - INFINITY LOOP ELSE
 
@@ -563,40 +561,6 @@ void QGCMapWidget::updateWaypointList(int uas)
         {
             // Update / add only if new
             if (!waypointsToIcons.contains(wp)) updateWaypoint(uas, wp);
-        }
-
-        // Delete connecting waypoint lines
-        QGraphicsItemGroup* group = waypointLines.value(uas, NULL);
-        if (group)
-        {
-            foreach (QGraphicsItem* item, group->childItems())
-            {
-                delete item;
-            }
-        }
-
-        // Add line element if this is NOT the first waypoint
-        mapcontrol::WayPointItem* prevIcon = NULL;
-        foreach (Waypoint* wp, wps)
-        {
-            mapcontrol::WayPointItem* currIcon = waypointsToIcons.value(wp, NULL);
-            // Do not work on first waypoint, but only increment counter
-            // do not continue if icon is invalid
-            if (prevIcon && currIcon)
-            {
-                // If we got a valid graphics item, continue
-                QColor wpColor(Qt::red);
-                if (uasInstance) wpColor = uasInstance->getColor();
-                mapcontrol::WaypointLineItem* line = new mapcontrol::WaypointLineItem(prevIcon, currIcon, wpColor, map);
-                QGraphicsItemGroup* group = waypointLines.value(uas, NULL);
-                if (group)
-                {
-                    group->addToGroup(line);
-                    qDebug() << "ADDED LINE!";
-                }
-                line->setVisible(true);
-            }
-            prevIcon = currIcon;
         }
     }
 }

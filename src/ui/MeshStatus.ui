@@ -74,17 +74,17 @@
         </column>
         <item row="0" column="0">
          <property name="text">
-          <string>No OLSRD</string>
+          <string>Ground</string>
          </property>
         </item>
         <item row="0" column="1">
          <property name="text">
-          <string/>
+          <string>1.00</string>
          </property>
         </item>
         <item row="0" column="2">
          <property name="text">
-          <string>running</string>
+          <string>MAV 001</string>
          </property>
         </item>
        </widget>
